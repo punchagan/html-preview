@@ -32,8 +32,13 @@
 (defvar html-preview-minor-mode-map (make-sparse-keymap)
   "Keymap html-preview-mode is active.")
 
-(defvar html-preview-backend 'reveal
-  "Backend to use for export.")
+(defvar html-preview-generator-name 'ox-reveal
+  "Name of the html generator function to use.")
+
+(defvar html-preview-generate-function-alist
+  '((ox-html . html-preview--generate-ox-html)
+    (ox-reveal . html-preview--generate-ox-reveal))
+  "Alist mapping a name to the html generate functions")
 
 (defvar html-preview--reveal-trigger-key-js "Reveal.triggerKey(%s)")
 
@@ -78,21 +83,31 @@ ESC, O      Slide overview
 (dolist (key html-preview--reveal-keys)
   (html-preview-define-key key))
 
+(defun html-preview--generate-default ()
+  (buffer-file-name))
+
+(defun html-preview--generate-ox-reveal ()
+  (require 'ox-reveal)
+  (org-reveal-export-to-html))
+
+(defun html-preview--generate-ox-html ()
+  (require 'ox-html)
+  (org-html-export-to-html))
+
 (define-minor-mode html-preview-minor-mode
   "Minor mode to simulate buffer local keybindings."
   :init-value nil
   :keymap html-preview-minor-mode-map)
 
-(defun html-preview--export ()
-  (case html-preview-backend
-    ('reveal (progn
-               (require 'ox-reveal)
-               (org-reveal-export-to-html)))
-    ('html (progn
-             (require 'ox-html)
-             (org-html-export-to-html)))
-    (t (error "Unkown backend"))))
-
+(defun html-preview--generate ()
+  "Generate html from the appropriate function"
+  (let ((f (cdr (assoc html-preview-generator-name html-preview-generate-function-alist))))
+    (if (not (null f))
+        (funcall f)
+      (message (concat "No html generate function for "
+                       (symbol-name html-preview-generator-name)
+                       ". Assuming file is html."))
+      (html-preview--generate-default))))
 
 (defun html-preview--xwidget-webkit-callback (xwidget xwidget-event-type)
   ;; TODO: Allow for other window placements?
@@ -103,9 +118,9 @@ ESC, O      Slide overview
     (switch-to-buffer-other-window (xwidget-buffer xwidget))
     (rename-buffer "*html-preview-buffer*")
     (xwidget-webkit-adjust-size-dispatch)
-    (if (equal 'reveal
+    (if (equal 'ox-reveal
                (buffer-local-value
-                'html-preview-backend
+                'html-preview-generator-name
                 html-preview--src-buffer))
         (html-preview-minor-mode 1)
       (html-preview-minor-mode -1))))
@@ -113,12 +128,13 @@ ESC, O      Slide overview
 (defun html-preview ()
   "Use xwidgets and get a reveal preview"
   (interactive)
-  (let* ((html-path (expand-file-name (html-preview--export)))
+  (let* ((html-path (expand-file-name (html-preview--generate)))
          xw)
     (setq html-preview--src-buffer (current-buffer))
     (xwidget-webkit-browse-url (format "file://%s" html-path))
     (setq xw (car (get-buffer-xwidgets xwidget-webkit-last-session-buffer)))
-    (xwidget-put xw 'callback #'html-preview--xwidget-webkit-callback) ; FIXME: Race?
+    ; FIXME: Could this possibly create a race condition?
+    (xwidget-put xw 'callback #'html-preview--xwidget-webkit-callback)
     ;; TODO: Jump to the correct section, get section id using org-rules.
     ))
 
