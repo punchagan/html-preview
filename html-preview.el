@@ -145,10 +145,10 @@ ESC, O      Slide overview
   "Use xwidgets and get a reveal preview"
   (interactive)
   (let* ((html-path (expand-file-name (html-preview--generate)))
+         ;; TODO: Add fragment for jumping to the correct section/slide
+         (url (format "file://%s" html-path))
          xw)
     (setq html-preview--src-buffer (current-buffer))
-    (html-preview--browse-url (format "file://%s" html-path))
-    ;; TODO: Jump to the correct section, get section id using org-rules.
-    ))
+    (html-preview--browse-url url)))
 
 (provide 'html-preview)
