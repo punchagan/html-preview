@@ -147,17 +147,50 @@ on every save."
                   (with-current-buffer preview-buffer
                     (xwidget-at (point-min))))))
     (if xw
-        (xwidget-webkit-goto-uri xw url)
+        (progn
+          ;; FIXME: `document-load-finished' is not fired when URL is same as
+          ;; the one opened before, but only fragment changes. Also, scroll
+          ;; doesn't work in this case!
+          (xwidget-webkit-goto-uri xw "")
+          (xwidget-webkit-goto-uri xw url))
       (xwidget-webkit-new-session url #'html-preview--xwidget-webkit-callback)
       (with-current-buffer (xwidget-buffer (xwidget-webkit-last-session))
         (rename-buffer html-preview-buffer-name)))))
 
-(defun html-preview ()
+(defun html-preview--get-url-fragment (html-path)
+  (save-excursion
+    ;; Headline parser assumes we are at beginning of headline
+    (if (org-at-heading-p)
+        (beginning-of-line)
+      (save-restriction
+        (widen)
+        (org-previous-visible-heading 1)))
+    (let ((headline (org-element-headline-parser (point-max)))
+          (info (org-export-get-environment))
+          (generator-name html-preview-generator-name)
+          ;; FIXME: Works only for ox-reveal and ox-html generators
+          (id-re "<\\(section\\|div\\) id=\"\\(.*?\\)\".*?>\n<h.*?>%s</h.>")
+          text fragment)
+      (while (org-export-low-level-p headline info)
+        (org-up-element)
+        (setq headline (org-element-headline-parser (point-max))))
+      (setq text (nth 4 (org-heading-components)))
+
+      (with-temp-buffer
+        (insert-file-contents html-path)
+        (save-match-data
+          (when (re-search-forward (format id-re text) nil t)
+            (setq fragment (match-string 2))))
+        (or fragment "")))))
+
+(defun html-preview (&optional beginning)
   "Use xwidgets and get a reveal preview"
-  (interactive)
+  (interactive "p")
   (let* ((html-path (expand-file-name (html-preview--generate)))
-         ;; TODO: Add fragment for jumping to the correct section/slide
-         (url (format "file://%s" html-path))
+         (full-path (format "file://%s" html-path))
+         (fragment (and (not (equal 4 beginning))
+                        (ignore-errors (html-preview--get-url-fragment html-path))))
+         (url (if fragment (format "%s#%s" full-path fragment) full-path))
          xw)
     (setq html-preview--src-buffer (current-buffer))
     (html-preview--browse-url url)))
