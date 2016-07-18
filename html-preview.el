@@ -27,17 +27,23 @@
 ;; changes. This allows viewing Reveal.js presentations, for instance.
 
 (require 's)
-
-(defvar html-preview-minor-mode-map (make-sparse-keymap)
-  "Keymap html-preview-mode is active.")
+(require 'xwidget)
 
 (defvar html-preview-generator-name 'ox-reveal
   "Name of the html generator function to use.")
 
+(defvar html-preview-buffer-name "*html-preview-buffer*"
+  "Name of the buffer in which previews are shown")
+
 (defvar html-preview-generate-function-alist
   '((ox-html . html-preview--generate-ox-html)
     (ox-reveal . html-preview--generate-ox-reveal))
-  "Alist mapping a name to the html generate functions")
+  "Alist mapping a name to the html generate functions.  Each of
+these functions hast to return the path to the HTML file after
+generating it.")
+
+(defvar html-preview-minor-mode-map (make-sparse-keymap)
+  "Keymap html-preview-mode is active.")
 
 (defvar html-preview--reveal-trigger-key-js "Reveal.triggerKey(%s)")
 
@@ -82,6 +88,11 @@ ESC, O      Slide overview
 (dolist (key html-preview--reveal-keys)
   (html-preview-define-key key))
 
+(define-minor-mode html-preview-minor-mode
+  "Minor mode to simulate buffer local keybindings."
+  :init-value nil
+  :keymap html-preview-minor-mode-map)
+
 (defun html-preview--generate-default ()
   (buffer-file-name))
 
@@ -92,11 +103,6 @@ ESC, O      Slide overview
 (defun html-preview--generate-ox-html ()
   (require 'ox-html)
   (org-html-export-to-html))
-
-(define-minor-mode html-preview-minor-mode
-  "Minor mode to simulate buffer local keybindings."
-  :init-value nil
-  :keymap html-preview-minor-mode-map)
 
 (defun html-preview--generate ()
   "Generate html from the appropriate function"
@@ -115,7 +121,6 @@ ESC, O      Slide overview
     (switch-to-buffer html-preview--src-buffer)
     (delete-other-windows)
     (switch-to-buffer-other-window (xwidget-buffer xwidget))
-    (rename-buffer "*html-preview-buffer*")
     (xwidget-webkit-adjust-size-dispatch)
     (if (equal 'ox-reveal
                (buffer-local-value
@@ -124,20 +129,26 @@ ESC, O      Slide overview
         (html-preview-minor-mode 1)
       (html-preview-minor-mode -1))))
 
+(defun html-preview--browse-url (url)
+  "Browse the URL using our own xwidget."
+  (let* ((preview-buffer (get-buffer html-preview-buffer-name))
+         (xw (and (buffer-live-p preview-buffer)
+                  (with-current-buffer preview-buffer
+                    (xwidget-at (point-min))))))
+    (if xw
+        (xwidget-webkit-goto-uri xw url)
+      (xwidget-webkit-new-session url #'html-preview--xwidget-webkit-callback)
+      (with-current-buffer (xwidget-buffer (xwidget-webkit-last-session))
+        (rename-buffer html-preview-buffer-name)))))
+
 (defun html-preview ()
   "Use xwidgets and get a reveal preview"
   (interactive)
   (let* ((html-path (expand-file-name (html-preview--generate)))
          xw)
     (setq html-preview--src-buffer (current-buffer))
-    (xwidget-webkit-browse-url (format "file://%s" html-path))
-    (setq xw (car (get-buffer-xwidgets xwidget-webkit-last-session-buffer)))
-    ; FIXME: Could this possibly create a race condition?
-    (xwidget-put xw 'callback #'html-preview--xwidget-webkit-callback)
+    (html-preview--browse-url (format "file://%s" html-path))
     ;; TODO: Jump to the correct section, get section id using org-rules.
     ))
 
 (provide 'html-preview)
-
-;; TODO: Submit patch to xwidgets.el that uses calls callback from 'callback
-;; property on widget, instead of global method
