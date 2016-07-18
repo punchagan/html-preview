@@ -1,5 +1,4 @@
-;; -*- lexical-binding: t -*-
-;;; html-preview.el -- Preview html files inside Emacs' webkit xwidget
+;;; html-preview.el --- Preview html files inside Emacs' webkit xwidget -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2016 Puneeth Chaganti
 
