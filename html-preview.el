@@ -42,8 +42,8 @@
 these functions hast to return the path to the HTML file after
 generating it.")
 
-(defvar html-preview-minor-mode-map (make-sparse-keymap)
-  "Keymap html-preview-mode is active.")
+(defvar html-preview-xwidget-minor-mode-map (make-sparse-keymap)
+  "Keymap when `html-preview-xwidget-minor-mode' is active.")
 
 (defvar html-preview--reveal-trigger-key-js "Reveal.triggerKey(%s)")
 
@@ -78,7 +78,7 @@ ESC, O      Slide overview
   "Define key for preview mode"
   `(let* ((key* (kbd (if (stringp ,key) key (car ,key))))
           (code (if (stringp key*) (string-to-char (s-upcase key*)) (cadr ,key))))
-     (define-key html-preview-minor-mode-map key*
+     (define-key html-preview-xwidget-minor-mode-map key*
        (lambda ()
          (interactive)
          (xwidget-webkit-execute-script-rv
@@ -88,10 +88,21 @@ ESC, O      Slide overview
 (dolist (key html-preview--reveal-keys)
   (html-preview-define-key key))
 
-(define-minor-mode html-preview-minor-mode
-  "Minor mode to simulate buffer local keybindings."
+(define-minor-mode html-preview-xwidget-minor-mode
+  "Minor mode for the html-preview xwidget buffer."
   :init-value nil
-  :keymap html-preview-minor-mode-map)
+  :keymap html-preview-xwidget-minor-mode-map)
+
+(define-minor-mode html-preview-minor-mode
+  "Minor mode for the html-preview source buffer.
+
+Enabling this mode just sets up a save hook to run html-preview
+on every save."
+  :init-value nil
+  :lighter " html-preview-src"
+  (if html-preview-minor-mode
+      (add-hook 'after-save-hook #'html-preview nil t)
+    (remove-hook 'after-save-hook #'html-preview t)))
 
 (defun html-preview--generate-default ()
   (buffer-file-name))
@@ -126,8 +137,8 @@ ESC, O      Slide overview
                (buffer-local-value
                 'html-preview-generator-name
                 html-preview--src-buffer))
-        (html-preview-minor-mode 1)
-      (html-preview-minor-mode -1))))
+        (html-preview-xwidget-minor-mode 1)
+      (html-preview-xwidget-minor-mode -1))))
 
 (defun html-preview--browse-url (url)
   "Browse the URL using our own xwidget."
