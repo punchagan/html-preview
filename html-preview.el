@@ -137,13 +137,18 @@ on every save."
     (switch-to-buffer html-preview--src-buffer)
     (delete-other-windows)
     (switch-to-buffer-other-window (xwidget-buffer xwidget))
-    (xwidget-webkit-adjust-size-dispatch)
     (if (equal 'ox-reveal
                (buffer-local-value
                 'html-preview-generator-name
                 html-preview--src-buffer))
         (html-preview-xwidget-minor-mode 1)
-      (html-preview-xwidget-minor-mode -1))))
+      (html-preview-xwidget-minor-mode -1))
+    (other-window 1)
+    (let ((golden-ratio-mode nil))
+      ;; FIXME: Too much jumping around
+      (other-window 1)
+      (xwidget-webkit-adjust-size-dispatch)
+      (other-window 1))))
 
 (defun html-preview--browse-url (url)
   "Browse the URL using our own xwidget."
