@@ -114,6 +114,7 @@ on every save."
   (if html-preview-minor-mode
       ;; Turn on
       (progn
+        (html-preview)
         (add-hook 'after-save-hook #'html-preview nil t)
         (when html-preview-after-change-idle-delay
           (add-hook 'after-change-functions #'html-preview--after-change-hook nil t)))
@@ -127,9 +128,9 @@ on every save."
 
 (defun html-preview--after-change-hook (beg end length)
   "Setup an idle timer to show preview"
-  (if (boundp 'html-preview--timer)
-      (cancel-timer html-preview--timer)
-    (defvar-local html-preview--timer nil))
+  (when (and (boundp 'html-preview--timer)
+             (not (null html-preview--timer)))
+    (cancel-timer html-preview--timer))
   (setq-local html-preview--timer
               (run-with-idle-timer 1 nil #'html-preview)))
 
