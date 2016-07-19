@@ -31,6 +31,17 @@
 ;; inside Emacs. Uses xwidgets as opposed to `org-eww' which uses `eww' make
 ;; changes. This allows viewing Reveal.js presentations, for instance.
 
+;; (require 'html-preview)
+;; By default previews are generated only on save.
+;; If you wish to enable previews for every change, set
+;; `html-preview-after-change-idle-delay' to some value in seconds.
+;; (setq html-preview-after-change-idle-delay 0.4)
+
+;;; Demo:
+;;[[file:./demo.gif]]
+
+;;; Code:
+
 (require 's)
 (require 'xwidget)
 
