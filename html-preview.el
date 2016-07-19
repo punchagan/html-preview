@@ -50,6 +50,12 @@ generating it.")
 (defvar html-preview-xwidget-minor-mode-map (make-sparse-keymap)
   "Keymap when `html-preview-xwidget-minor-mode' is active.")
 
+(defvar html-preview-after-change-idle-delay nil
+  "The idle time to run html preview after a change.
+If set to nil, html-previews are not run after changes.  Set this
+to 1 second or so, for a reasonable preview mode without too many
+compiles slowing down the writing.")
+
 (defvar html-preview--reveal-trigger-key-js "Reveal.triggerKey(%s)")
 
 (defvar html-preview--reveal-keys
@@ -106,8 +112,26 @@ on every save."
   :init-value nil
   :lighter " html-preview-src"
   (if html-preview-minor-mode
-      (add-hook 'after-save-hook #'html-preview nil t)
-    (remove-hook 'after-save-hook #'html-preview t)))
+      ;; Turn on
+      (progn
+        (add-hook 'after-save-hook #'html-preview nil t)
+        (when html-preview-after-change-idle-delay
+          (add-hook 'after-change-functions #'html-preview--after-change-hook nil t)))
+
+    ;; Turn off
+    (remove-hook 'after-save-hook #'html-preview t)
+    (when html-preview-after-change-idle-delay
+      (remove-hook 'after-change-functions #'html-preview--after-change-hook t)
+      (when (boundp 'html-preview--timer)
+        (cancel-timer html-preview--timer)))))
+
+(defun html-preview--after-change-hook (beg end length)
+  "Setup an idle timer to show preview"
+  (if (boundp 'html-preview--timer)
+      (cancel-timer html-preview--timer)
+    (defvar-local html-preview--timer nil))
+  (setq-local html-preview--timer
+              (run-with-idle-timer 1 nil #'html-preview)))
 
 (defun html-preview--generate-default ()
   (buffer-file-name))
@@ -196,7 +220,8 @@ on every save."
 (defun html-preview (&optional beginning)
   "Use xwidgets and get a reveal preview"
   (interactive "p")
-  (let* ((html-path (expand-file-name (html-preview--generate)))
+  (let* ((inhibit-modification-hooks t)
+         (html-path (expand-file-name (html-preview--generate)))
          (full-path (format "file://%s" html-path))
          (fragment (and (not (equal 4 beginning))
                         (ignore-errors (html-preview--get-url-fragment html-path))))
