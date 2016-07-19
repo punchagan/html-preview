@@ -2,6 +2,11 @@
 
 ;; Copyright (C) 2016 Puneeth Chaganti
 
+;; Author: Puneeth Chaganti <punchagan@muse-amuse.in>
+;; Created: 2016 July 15
+;; Keywords: html, org-mode, preview
+;; URL: <https://github.com/punchagan/html-preview>
+
 ;; This file is not part of GNU Emacs.
 
 ;; This program is free software: you can redistribute it and/or modify
