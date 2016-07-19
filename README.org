@@ -18,8 +18,8 @@ Requires Emacs to be compiled with xwidgets support
 
 * Commentary
 
-Provides `html-preview' which is a function to preview current file exported
-inside Emacs. Uses xwidgets as opposed to `org-eww' which uses `eww' make
+Provides ~html-preview~ which is a function to preview current file exported
+inside Emacs. Uses xwidgets as opposed to ~org-eww~ which uses ~eww~ make
 changes. This allows viewing Reveal.js presentations, for instance.
 
 README.org generated from the library header in ~html-preview.el~ by [[https://github.com/punchagan/h2o][h2o]]
