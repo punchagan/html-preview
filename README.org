@@ -32,10 +32,9 @@ changes. This allows viewing Reveal.js presentations, for instance.
  ;; ~html-preview-after-change-idle-delay~ to some value in seconds.
  (setq html-preview-after-change-idle-delay 0.4)
 
-
 #+END_SRC
 
-;;; Demo:
+* Demo
 [[file:./demo.gif]]
 
 
